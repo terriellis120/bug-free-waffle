@@ -1,0 +1,742 @@
+/** @page memory_organization_page Memory Organization
+
+  The memory space of the System-on-Chip is configured in a "Von Neumann"
+architecture. This means that code and data are accessed within the same
+linear address space. All of the physically separated memory areas,
+including internal ROM and Flash, internal RAM,
+the processors Control and Status Registers (CSRs), the internal IO area,
+and external memory are mapped into one common address space.
+
+<center>
+ <img src="../doxygen/pics/addr_space_overview.png" alt="Address Space"> 
+ @latexonly {\includegraphics{../doxygen/pics/addr_space_overview.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Address Space Overview.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+  The following VHDL configuration parameters defines address and
+data space sizes.
+
+<center>
+| Parameter Name       | Value    | Description           |
+|:--------------------:|:--------:|:----------------------|
+| CFG_SYSBUS_ADDR_BITS | 32       | Address Bus bit width |
+| CFG_SYSBUS_DATA_BITS | 64       | Data Bus bit width    |
+@latexonly \begin{tblid} @endlatexonly
+General System Bus parameters.
+@latexonly \end{tblid} @endlatexonly
+</center>
+
+
+  Totally available 4 GB of memory space in the default implementation.
+
+<center>
+ <img src="../doxygen/pics/mem_byte_order.png" alt="Byte Order"> 
+ @latexonly {\includegraphics{../doxygen/pics/mem_byte_order.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Storage of Words, Bytes and Bits in a Byte Organized Memory.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+  RISC-V architecture supposes memory is addressed as 8-bit bytes, with words
+being in <c>little-endian</c> order. That's similar to x86 computers. Words,
+up to the register size, can be accessed with the load and store instructions.
+
+  Accessed memory addresses need to be aligned to their word-width, otherwise 
+<c>"unaligned store"</c> or <c>"unaligned load"</c> exception will be raised. 
+
+@note Bus controller with the full unaligned memory access support was implemented
+      in the earlier versions of River. It can be reused in future version
+      by complicating procedures implementing AXI4 accesses.
+
+  Despite the default 64-bit data bus width (8-bytes) there's support of
+4-byte aligned address transactions (including the burst operations).
+This was made to support the potential compatibility with the 32-bits data bus.
+
+<b>Example:</b>
+@verbatim
+        DMA read burst transaction request
+               address = 0x00000004
+               size = 0x2 (4 Bytes)
+               len = 1 (2 transactions)
+
+        This operation will returns 64-bit data:
+               read cycle 0: [data32[0x08], data32[0x04]]
+               read cycle 1: [data32[0x0C], data32[0x08]]
+@endverbatim
+
+  CPU <c>River</c> always uses 8-byte aligned memory access with the appropriate
+strobes on a write operations.
+
+@section adress_mapping Address Mapping
+
+  All the various memory areas and peripheral registers are mapped into
+one contiguous address space. All sections can be accessed in the same way. The
+memory map of the SoC contains some reserved areas, so future derivatives can be
+enhanced in an upward-compatible fashion.
+
+@note Table 3-2 shows the available memory areas in the default
+      configuration. The actual available memory areas depend on the certain
+      implementation.
+
+<center>
+
+| Address Area       | Start Loc.| End Loc.  | Area Size   | Notes                                               
+|:-------------------|:---------:|:---------:|:------------|:----------------------------------------------------
+| Boot ROM           | 00000000h | 00007FFFh | 32 Kbytes   | Universal Bootloader image                          
+| OTP                | 00010000h | 00011FFFh | 8 Kbytes    | One-Time Programmable secure code                   
+| User's ROM Image   | 00100000h | 0013FFFFh | 256 Kbytes  | Internal ROM application
+| External Flash IC  | 00200000h | 0023FFFFh | 256 Kbytes  | Micron Flash IC (25xx1024)
+| SRAM               | 10000000h | 1007FFFFh | 512 Kbytes  | Internal code or data SRAM                          
+| GPIO Controller    | 80000000h | 80000FFFh | 4 Kbytes    | User specific IOs                                   
+| UART1              | 80001000h | 80001FFFh | 4 Kbytes    | Default serial port                                 
+| IRQ Controller     | 80002000h | 80002FFFh | 4 Kbytes    | Interrupt Controller                                
+| GP Timers          | 80005000h | 80005FFFh | 4 Kbytes    | Two general purpose timers with RTC                 
+| GNSS Sub-System    | 80008000h | 8000FFFFh | 32 Kbytes   | Customizable Satellite Navigation Sub-System (GPS/Glonass/Galileo)
+| Ethernet MAC       | 80040000h | 8007FFFFh | 256 Kbytes  | 100 Mb Ethernet MAC with the Debug support          
+| DSU                | 80080000h | 8009FFFFh | 128 Kbytes  | Debug Support Unit with the multiprocessors support 
+| I/D Caches         | 800A0000h | 800BFFFFh | 128 Kbytes  | Reserved                                            
+| PNP                | FFFFF000h | FFFFFFFFh | 4 Kbytes    | System status and configuration registers           
+@latexonly \begin{tblid} @endlatexonly
+Default SoC Memory Map.
+@latexonly \end{tblid} @endlatexonly
+</center>
+
+@section bootrom_memory_section Boot ROM
+
+  Generic internal ROM module initialized with the default boot loader image (HEX-file)
+available in the folder <i>examples/boot/</i>.
+
+  Default bootrom image allows to implement the following functionality:
+
+\li Default exception handlers printing exception code into UART port.
+\li Implement initial system initialization, like: registers reset, stack initialization.
+\li Implement GPIO input reading to select boot options.
+\li Copy User image into SRAM as is and jump into SRAM entry point in User Mode.
+
+  <b>VHDL IP generic parameters</b>
+
+<center>
+<table>
+  <tr>
+    <th>Name</th>    <th>Value</th>   <th>Description</th>
+  </tr>
+  <tr>
+    <td>memtech</td>
+    <td>CFG_MEMTECH</td>
+    <td><b>Memory technology</b>. This integer parameter defines memory
+       banks instantiated in system:
+       <ul>
+         <li>0 (inferred) = generic memory blocks (RTL Simulation)</li>
+         <li>not 0 = FPGA or ASIC technology specific memory banks</li>
+       </ul></td>
+  </tr>
+  <tr>
+    <td>async_reset</td>
+    <td>FALSE</td>
+    <td><b>Reset Type</b>. Internal registers reset type:
+       <ul>
+         <li>FALSE syncrhonous reset (FPGA)</li>
+         <li>TRUE asynchronous reset (ASIC)</li>
+       </ul></td>
+  </tr>
+  <tr>
+    <td>xaddr</td>
+    <td>16#00000#</td>
+    <td><b>Base address</b>. Base Address value defines bits [31:12] of the allocated memory space</td>
+  </tr>
+  <tr>
+    <td>xmask</td>
+    <td>16#FFFF8#</td>
+    <td><b>Address Mask</b>. Address Mask is used by system controller to defines allocated memory size</td>
+  </tr>
+  <tr>
+    <td>sim_hexfile</td>
+    <td>CFG_SIM_BOOTROM_HEX</td>
+    <td><b>Image file</b>. HEX-file used for ROM initialization</td>
+  </tr>
+</table>
+@latexonly \begin{tblid} @endlatexonly
+Boot ROM generic parameters.
+@latexonly \end{tblid} @endlatexonly
+</center>
+
+  These generic parameters directly define the Boot ROM location
+in the system memory map 0x00000000. <i>xmask</i> value used to compute allocated
+memory size (in this default case 32 KB).
+
+
+@section userrom_memory_section User ROM
+
+  Additional internal ROM memory bank initialized with the custom user's program
+image <i>fwimage.hex</i>. This image is coping as is into internal SRAM by Boot Loader
+and the Base Address of internal SRAM (0x10000000) used as entry point of the program.
+
+  This ROM allows to write simple user application without need to implement
+processor initialization code that executed in privileged Machine Mode 
+(see <i>examples/helloworld/</i> or <i>examples/riscv-tests/</i>).
+
+  Additionally, no needs to program external flash IC or other external memory
+storage. That's significantly simplify system debugging on FPGA. But in common case 
+this ROM may be removed from the system using only external Flash Memory storage.
+
+  <b>VHDL IP generic parameters</b>
+
+<center>
+<table>
+  <tr>
+    <th>Name</th>    <th>Value</th>   <th>Description</th>
+  </tr>
+  <tr>
+    <td>memtech</td>
+    <td>CFG_MEMTECH</td>
+    <td><b>Memory technology</b>. This integer parameter defines memory
+       banks instantiated in system:
+       <ul>
+         <li>0 (inferred) = generic memory blocks (RTL Simulation)</li>
+         <li>not 0 = FPGA or ASIC technology specific memory banks</li>
+       </ul></td>
+  </tr>
+  <tr>
+    <td>async_reset</td>
+    <td>FALSE</td>
+    <td><b>Reset Type</b>. Internal registers reset type:
+       <ul>
+         <li>FALSE syncrhonous reset (FPGA)</li>
+         <li>TRUE asynchronous reset (ASIC)</li>
+       </ul></td>
+  </tr>
+  <tr>
+    <td>xaddr</td>
+    <td>16#00100#</td>
+    <td><b>Base address</b>. Base Address value defines bits [31:12] of the allocated memory space</td>
+  </tr>
+  <tr>
+    <td>xmask</td>
+    <td>16#FFFC0#</td>
+    <td><b>Address Mask</b>. Address Mask is used by system controller to defines allocated memory size</td>
+  </tr>
+  <tr>
+    <td>sim_hexfile</td>
+    <td>CFG_SIM_FWIMAGE_HEX</td>
+    <td><b>Image file</b>. HEX-file used for ROM initialization</td>
+  </tr>
+</table>
+@latexonly \begin{tblid} @endlatexonly
+User's ROM generic parameters.
+@latexonly \end{tblid} @endlatexonly
+</center>
+
+  These generic parameters directly define the User's ROM location
+in the system memory map 0x00100000. <i>xmask</i> value used to compute allocated
+memory size (in this default case 256 KB).
+
+
+@section external_flash_section External Flash Memory
+
+  External flash memory is connecting to the system-on-chip via SPI interface.
+SPI Controller with th AXI4 interface was specially developed to support IC
+<c>Micron M25AA1024</c> and other compatible ICs. Flash memory is directly mapped
+into memory map i.e. it visible to CPU and other master devices as a simple memory
+region of 256 KB. Read and Write accesses to this region automatically transformed
+into SPI flash commands by SPI controller. Access latency to flash depends of
+SPI command length and configured clock scaler (by default it forms 10 MHz
+SPI clock frequency). 
+
+<center>
+ <img src="../doxygen/pics/flash_to_axi.png" alt="Flash to AXI"> 
+ @latexonly {\includegraphics{../doxygen/pics/flash_to_axi.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+SPI Flash and SoC connection.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+  External Flash memory is fully accessible for reading as a simple memory
+bank without any limitations. System Bus controller is always wait response
+from Flash region while in a read transaction and stop other activities.
+But write transactions must be done via page buffer (256 Bytes) with the
+<c>Busy</c> bit polling in the <c>STATUS register</c>.
+
+@subsection spiflash_bridge_subsection AXI4 SPI Bridge
+
+  This VHDL module was specially developed to interact with the following ICs:
+
+\li Microchip \c 25AA1024 and \c 25LC1024
+\li Milandr \c 1636PP52Y
+
+  The full list of the serial commands supported by AXI4 bridge and the external
+flash IC is shown below.
+
+<center>
+| Name  | Instruction Format | Description
+|:-----:|:------------------:|:------------------------------------------------------------------
+| READ  | 0000 0011          | Read data from memory array beginning at selected address
+| WRITE | 0000 0010          | Write data to memory array (256 Bytes) beginning at selected address
+| WRENA | 0000 0110          | Set the write enable latch (enable write operations)
+| WRDI  | 0000 0100          | Reset the write enable latch (disable write operations)
+| RDSR  | 0000 0101          | Read STATUS register
+| WRSR  | 0000 0001          | Write STATUS register
+| PE    | 0100 0010          | Page Erase - erase one page in memory array
+| SE    | 1101 1000          | Sector Erase - erase one sector in memory array
+| CE    | 1100 0111          | Chip Erase - erase all sectors in memory array
+| RDID  | 1010 1011          | Release from Deep Power-down mode and Read Electronic Signature
+| DPD   | 1011 1001          | Deep Power-Down mode
+@latexonly \begin{tblid} @endlatexonly
+External Flash IC Instruction Set.
+@latexonly \end{tblid} @endlatexonly
+</center>
+
+  AXI4 read request into SPI controller address space automatically generates the
+signal sequence on SoC outputs (nCS, SDO, SCK) that directly connected to the
+external IC.
+
+  AXI4 transaction is in the wait state while no response from external IC so
+that CPU (or DMA, TAP) can't execute next request to the System Bus.
+
+@subsection spiflash_regs_subsection AXI4 SPI Registers
+
+  AXI4 SPI Bridge connected to the system bus as a slave device and available for reading and writing for any master device in a system.
+
+  Device Base Address define as 0x00200000. Full allocated memory range is
+256 KB splitted on two equals parts. The first half is the direct representation
+of the external flash memory array. The second half (starting from address 0x00220000)
+contains the managing registers of the AXI4 bridge
+
+  <b>VHDL IP generic parameters</b>
+
+  AXI4 SPI Bridge configured with the following generic parameters by default:
+
+<center>
+<table>
+  <tr>
+    <th>Name</th>    <th>Value</th>   <th>Description</th>
+  </tr>
+  <tr>
+    <td>async_reset</td>
+    <td>FALSE</td>
+    <td><b>Reset Type</b>. Internal registers reset type:
+       <ul>
+         <li>FALSE syncrhonous reset (FPGA)</li>
+         <li>TRUE asynchronous reset (ASIC)</li>
+       </ul></td>
+  </tr>
+  <tr>
+    <td>xaddr</td>
+    <td>16#00200#</td>
+    <td><b>Base address</b>. Base Address value defines bits [31:12] of the allocated memory space</td>
+  </tr>
+  <tr>
+    <td>xmask</td>
+    <td>16#FFFC0#</td>
+    <td><b>Address Mask</b>. Address Mask is used by system controller to defines allocated memory size</td>
+  </tr>
+</table>
+@latexonly \begin{tblid} @endlatexonly
+SPI Bridge generic parameters.
+@latexonly \end{tblid} @endlatexonly
+</center>
+
+  These generic parameters directly define the UART device memory location
+in the system memory map 0x00200000. Allocated memory size is 256 KB.
+
+  The full list of Registers relative Device Base Address offset is shown in the
+following table.
+
+  <b>Device Registers list</b>
+
+<center>
+| Offset   | Name               | Reset Val. | Description
+|:--------:|:-------------------|:----------:|--------------------------------------------------------------------------------------
+| 0x00000  | FLASH_DATA         | ****:****h | 128 KB of external flash IC directly accessible via this address range
+| 0x20000  | FLASH_SCALER       | 0000:0000h | System Bus clock divider threshold forming half period of the SPI frequency
+| 0x20010  | FLASH_STATUS       | 0000:0000h | Direct reading STATUS register from external IC
+| 0x20018  | FLASH_ID           | 0000:0029h | Direct reading of Flash ID
+| 0x20020  | FLASH_WRITE_ENA    | 0000:0000h | Write enable
+| 0x20028  | FLASH_WRITE_PAGE   | 0000:0000h | Write internal page buffer (256 B) into external memory array
+| 0x20030  | FLASH_WRITE_DIS    | 0000:0000h | Write disable
+| 0x20038  | FLASH_ERASE_PAGE   | 0000:0000h | Clear memory page
+| 0x20040  | FLASH_ERASE_SECTOR | 0000:0000h | Clear memory sector
+| 0x20048  | FLASH_ERASE_CHIP   | 0000:0000h | Clear all memory sectors
+| 0x20050  | FLASH_POWER_DOWN   | 0000:0000h | Enable Deep Power-down mode
+@latexonly \begin{tblid} @endlatexonly
+AXI4 SPI Bridge Registers.
+@latexonly \end{tblid} @endlatexonly
+</center>
+
+
+
+ <b>FLASH_DATA 128 KB (0x00000..0x1FFFF)</b>
+
+  AXI4 read-transactions from this region is directly converting into signal sequence
+of the following format:
+
+<center>
+ <img src="../doxygen/pics/spi_rd_data.png" alt="SPI read data"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_rd_data.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+READ sequence format.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+  The bridge supports 4 and 8-bytes read operations.
+
+  Write access to this region <b>doesn't activate</b> any activities on SPI 
+bus. All data is writing into the internal page buffer (256 Byte) using only
+address bits [7:2], address bits [31:8] are ignored. It is possible to write
+into page buffer using 4- and 8-bytes transactions. Page address is defined
+by register \c FLASH_WRITE_PAGE.
+
+
+
+ <b>FLASH_SCALER Register (0x20000)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>scaler</td>   <td>[31:0]</td>   <td>RW</td>   <td><b>Scaler Threshold</b>.
+        This registers specifies the overflow threshold that
+        is used to form \c posedge and \c negedge events forming SPI clock \c SCLK.
+  </tr>
+</table>
+
+
+
+ <b>FLASH_STATUS Register (0x20010)</b>
+
+  The \c STATUS register may be read at any time, even during a write
+cycle.
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>rsrv</td>  <td>[31:4]</td>   <td>RZ</td>   <td>reserved</td>
+  </tr>
+  <tr>
+    <td>BP</td>    <td>[3:2]</td>    <td>RW</td>   <td><b>Block Protection</b>.
+        These bits control Write Protection for a specific segments
+       (see IC description)</td>
+  </tr>
+  <tr>
+    <td>WEL</td>   <td>[1]</td>   <td>RO</td>  <td><b>Write Enable Latch</b>:
+       <ul>
+         <li>'1' Enable write to flash</li>
+         <li>'0' Disable write to flash</li>
+       </ul></td>
+  </tr>
+  <tr>
+    <td>WIP</td>    <td>[0]</td>    <td>RO</td>   <td><b>Write In Progress</b>.
+       External Flash IC is in writing state.
+       <ul>
+         <li>'1' Writing in progress</li>
+         <li>'0' Ready to accept the next command</li>
+       </ul></td>
+  </tr>
+</table>
+
+  Read request to this register forms the following signals sequence on SPI Bus:
+
+<center>
+ <img src="../doxygen/pics/spi_rd_status.png" alt="SPI read status"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_rd_status.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Read STATUS register SPI sequence.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+  Write request into this register forms the following signals sequence on SPI Bus:
+
+<center>
+ <img src="../doxygen/pics/spi_wr_status.png" alt="SPI write status"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_wr_status.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Write STATUS register SPI sequence.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+
+
+ <b>FLASH_ID Register (0x20018)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>rsrv</td>  <td>[31:8]</td>  <td>RZ</td>  <td>reserved</td>
+  </tr>
+  <tr>
+    <td>ID</td>    <td>[7:0]</td>   <td>RO</td>
+        <td><b>Manufacturer ID</b>. MicronChip ID 0x29</td>
+  </tr>
+</table>
+
+  Read request to this register forms the following signals sequence on SPI Bus:
+
+<center>
+ <img src="../doxygen/pics/spi_rd_id.png" alt="SPI read ID"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_rd_id.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Read ID register SPI sequence.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+  Read request from this register will release the external flash device from
+Deep Power-down mode and outputs the electronic signature, and then returns
+the device to Standby mode.
+
+
+ <b>FLASH_WRITE_ENA Register (0x20020)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>WE</td>    <td>[31:0]</td>   <td>WO</td>    <td><b>Write Enable</b>.
+       Any value written to this register generates SPI sequence enabling
+       write access in External Flash</td>
+  </tr>
+</table>
+
+  Write request into this register forms the following signals sequence on SPI Bus:
+
+<center>
+ <img src="../doxygen/pics/spi_wr_enable.png" alt="SPI Write Enable"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_wr_enable.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Write Enable SPI sequence.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+
+ <b>FLASH_WRITE_PAGE Register (0x20028)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>rsrv</td>  <td>[31:17]</td>  <td>WO</td>  <td>reserved</td>
+  </tr>
+  <tr>
+    <td>PA</td>    <td>[16:8]</td>   <td>WO</td>    <td><b>Page Address</b>.
+       This value automatically inserted into SPI sequence for the page writing
+       into External Flash</td>
+  </tr>
+  <tr>
+    <td>rsrv</td>  <td>[7:0]</td>  <td>WO</td>  <td>reserved</td>
+  </tr>
+</table>
+
+  Write request into this register forms the following signals sequence on SPI Bus:
+
+<center>
+ <img src="../doxygen/pics/spi_wr_page.png" alt="SPI Write Page"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_wr_page.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+PAGE write sequence.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+  It is necessary polling bit WIP in the STATUS register and wait
+while it become Low. It is not allowed to call other SPI transactions
+while write process isn't finished otherwise data corruption may happen.
+
+
+ <b>FLASH_WRITE_DIS Register (0x20030)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>WD</td>    <td>[16:8]</td>   <td>WO</td>    <td><b>Write Disable</b>.
+       Any value written to this register will generate SPI sequence
+       disabling write access</td>
+  </tr>
+</table>
+
+  Write request into this register forms the following signals sequence on SPI Bus:
+
+<center>
+ <img src="../doxygen/pics/spi_wr_disable.png" alt="SPI Write Disable"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_wr_disable.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Write Disable sequence.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+
+ <b>FLASH_ERASE_PAGE Register (0x20038)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>rsrv</td>  <td>[31:24]</td>  <td>WO</td>  <td>reserved</td>
+  </tr>
+  <tr>
+    <td>EPA</td>    <td>[23:0]</td>   <td>WO</td>    <td><b>Erase Page Address</b>.
+       This value automatically inserted into SPI sequence for the page erasing
+       in External Flash</td>
+  </tr>
+</table>
+
+  Write request into this register forms the following signals sequence on SPI Bus:
+
+<center>
+ <img src="../doxygen/pics/spi_erase_page.png" alt="SPI Erase Page"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_erase_page.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Page Erase sequence.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+
+ <b>FLASH_ERASE_SECTOR Register (0x20040)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>rsrv</td>  <td>[31:24]</td>  <td>WO</td>  <td>reserved</td>
+  </tr>
+  <tr>
+    <td>ESA</td>    <td>[23:0]</td>   <td>WO</td>    <td><b>Erase Sector Address</b>.
+       This value automatically inserted into SPI sequence for the sector erasing
+       in External Flash</td>
+  </tr>
+</table>
+
+  Write request into this register forms the following signals sequence on SPI Bus:
+
+<center>
+ <img src="../doxygen/pics/spi_erase_sector.png" alt="SPI Erase Sector"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_erase_sector.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Sector Erase sequence.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+
+ <b>FLASH_ERASE_CHIP Register (0x20048)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>CE</td>    <td>[31:0]</td>   <td>WO</td>    <td><b>Chip Erase</b>.
+       Any written value generates SPI sequence</td>
+  </tr>
+</table>
+
+  Write request into this register forms the following signals sequence on SPI Bus:
+
+<center>
+ <img src="../doxygen/pics/spi_erase_chip.png" alt="SPI Erase Chip"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_erase_chip.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Chip Erase sequence.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+
+ <b>FLASH_POWER_DOWN Register (0x20050)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>DPD</td>    <td>[31:0]</td>   <td>WO</td>    <td><b>Deep Power-down mode</b>.
+       Any written value generates SPI sequence</td>
+  </tr>
+</table>
+
+  Write request into this register forms the following signals sequence on SPI Bus:
+
+<center>
+ <img src="../doxygen/pics/spi_pwrdwn_enable.png" alt="SPI PowerDown ena"> 
+ @latexonly {\includegraphics{../doxygen/pics/spi_pwrdwn_enable.png}} @endlatexonly
+
+@latexonly \begin{figid} @endlatexonly
+Enable Deep Power-down mode sequence.
+@latexonly \end{figid} @endlatexonly
+</center>
+
+
+@subsection flash_access_example_subsection C-code example
+
+  The following C-example demonstrates procedure of preparing and writing
+the internal page buffer (256 Bytes) into the external Flash memory array.
+
+@code
+
+    // Constant address definitions:
+    #define FLASH_DATA         0x200000
+    #define FLASH_SCALER       0x220000
+    #define FLASH_STATUS       0x220010
+    #define FLASH_WRITE_ENA    0x220020
+    #define FLASH_WRITE_PAGE   0x220028
+    #define FLASH_WRITE_DIS    0x220030
+    #define FLASH_ERASE_CHIP   0x220048
+
+
+    // Check status and wait
+    void flash_wait_ready() {
+        volatile uint32_t *status = (volatile uint32_t *)FLASH_STATUS;
+        while (status[0] & 0x1) {}
+    }
+
+    // Test example
+    void flash_write_test() {
+        // Enable SCK clock 10 MHz on SPI interface
+        *((uint32_t *)FLASH_SCALER) = 4;
+ 
+        // Erase flash and check it readiness
+        *((uint32_t *)FLASH_ERASE_CHIP) = 4;
+        flash_wait_ready();
+
+        // Enable Writing
+        *((uint32_t *)FLASH_WRITE_ENA) = 1;
+
+        // Prepare page with data (256 bytes)
+        for (int i = 0; i < 64; i++) {
+            ((uint32_t *)FLASH_DATA)[i] = 0x03020100 + i;
+        }
+
+        // Write Page 0
+        *((uint32_t *)FLASH_WRITE_PAGE) = (0 << 8);
+        flash_wait_ready();
+
+        // Write Page 1
+        *((uint32_t *)FLASH_WRITE_PAGE) = (1 << 8);
+        flash_wait_ready();
+
+        // Disable Writing
+        *((uint32_t *)FLASH_WRITE_DIS) = 1;
+    }
+@endcode
+
+*/

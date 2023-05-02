@@ -1,0 +1,6 @@
+linuxbuild/obj
+*.elf
+*.dump
+*.lst
+*.err
+*bootrom_tests.hex

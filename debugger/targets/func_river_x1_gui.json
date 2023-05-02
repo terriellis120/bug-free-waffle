@@ -1,0 +1,98 @@
+{
+  'GlobalSettings':{
+    'SimEnable':true,
+    'GUI':false,
+    'InitCommands':[
+                   ],
+    'Description':'Functional simulation of the RISC-V Single Core River CPU'
+  },
+  'Services':[
+
+#include "common_riscv.json"
+#include "common_soc.json"
+
+    {'Class':'TcpServerJtagBitBangClass','Instances':[
+          {'Name':'jtagbb','Attr':[
+                ['LogLevel',3],
+                ['Enable',true],
+                ['BlockingMode',true],
+                ['HostIP',''],
+                ['HostPort',9824],
+                ['RecvTimeout',500],
+                ['JtagTap','dtm0', 'Jtag DTM functional implementation']
+          ]}]},
+    {'Class':'CpuRiver_FunctionalClass','Instances':[
+          {'Name':'core0','Attr':[
+                ['Enable',true],
+                ['LogLevel',3],
+                ['HartID',0],
+                ['VendorID',0x000000F1],
+                ['ContextID',[0,1,0,0],'Context index depending priveledge mode 0=U,1=S,2=H,3=M'],
+                ['ImplementationID',0x20211219],
+                ['SysBusMasterID',0,'Used to gather Bus statistic'],
+                ['SysBus','axi0'],
+                ['CLINT','clint0', 'Core-Local Interuptor to generate sw and mtimer interrupts'],
+                ['PLIC','plic0'],
+                ['PmpTotal',8],
+                ['CmdExecutor','cmdexec0'],
+                ['DmiBAR',0x1000,'Base address of the DMI module'],
+                ['SysBusWidthBytes',8,'Split dma transactions from CPU'],
+                ['SourceCode','src0'],
+                ['ListExtISA',['I','M','A','C','D']],
+                ['StackTraceSize',64,'Number of 16-bytes entries'],
+                ['FreqHz',12000000],
+                ['ResetVector',0x10000,'Initial intruction pointer value (config parameter)'],
+                ['GenerateTraceFile','trace_river_func.log','Specify file name to enable tracer'],
+                ['CacheBaseAddress',0x08000000],
+                ['CacheAddressMask',0x1fffff, '2MB cache L2 reserved on FU740'],
+                ['TriggersTotal',2],
+                ['McontrolMaskmax',63,'Possible value in range 0 to 63 (NAPOT mask see spec)'],
+                ['ResetState','Halted', 'CPU state after reset signal is raised: Halted or OFF'],
+                ]}]},
+    {'Class':'ICacheFunctionalClass','Instances':[
+          {'Name':'icache0','Attr':[
+                ['LogLevel',4],
+                ['SysBus','axi0'],
+                ['CmdExecutor','cmdexec0'],
+                ['BaseAddress',0x0],
+                ['Length',65536]
+                ]}]},
+    {'Class':'DmiFunctionalClass','Instances':[
+          {'Name':'dmi0','Attr':[
+                ['LogLevel',3],
+                ['SysBus','axi0'],
+                ['SysBusMasterID',3,'Used to gather Bus statistic'],
+                ['BaseAddress',0x1000],
+                ['Length',4096],
+                ['CpuMax',4, 'Total available slots'],
+                ['DataregTotal',6, 'arg0 and arg1 64-bits data registers'],
+                ['ProgbufTotal',16, 'Maximal size 16x32-bits registers'],
+                ['HartList',['core0'], 'Connected cores, other slots will be seen as unavailable'],
+                ['MapList',[]]
+                ]}]},
+    {'Class':'DtmFunctionalClass','Instances':[
+          {'Name':'dtm0','Attr':[
+                ['LogLevel',3],
+                ['Version',1,'Field in dtmcs register'],
+                ['IdCode',0x10e31913,'TAP ID'],
+                ['irlen',5,'IR length'],
+                ['abits',7,'Field in dtmcs register'],
+                ['Dmi','dmi0'],
+                ]}]},
+
+    {'Class':'BusGenericClass','Instances':[
+          {'Name':'axi0','Attr':[
+                ['LogLevel',3],
+                ['AddrWidth',39, 'Addr. bits [63:39] should be equal to [38] in real hardware'],
+                ['MapList',['ddr0','ddr1','bootrom0','fwimage0','sram0','gpio0',
+                        'uart0','uart1','plic0','clint0','gnss0','spiflash0',
+                        'pnp0','rfctrl0','fsegps0','dmi0',
+                        'ddrflt0','ddrctrl0','prci0','qspi2','otp0']]
+                ]}]},
+    {'Class':'JTAGClass','Instances':[
+          {'Name':'jtag0','Attr':[
+                ['LogLevel',3],
+                ['TargetBitBang','dtm0'],
+          ]}]},
+  ]
+}

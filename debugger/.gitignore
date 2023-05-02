@@ -1,0 +1,17 @@
+*.sdf
+*.opensdf
+*.suo
+*.err
+Debug
+!src/common/debug
+Release
+*.log
+*.rcc
+*.pyc
+linuxbuild
+win32build
+win64build
+moc_*.h
+.vs
+Tmp
+scripts/generated

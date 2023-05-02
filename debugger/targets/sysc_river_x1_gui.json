@@ -1,0 +1,55 @@
+{
+  'GlobalSettings':{
+    'SimEnable':true,
+    'GUI':false
+    'InitCommands':['init'
+                   ],
+    'Description':'This configuration creates SystemC instance of CPU RIVER Sinle Core'
+  },
+  'Services':[
+
+#include "common_riscv.json"
+#include "common_soc.json"
+
+    {'Class':'TcpServerJtagBitBangClass','Instances':[
+          {'Name':'jtagbb','Attr':[
+                ['LogLevel',3],
+                ['Enable',true],
+                ['BlockingMode',true],
+                ['HostIP',''],
+                ['HostPort',9824],
+                ['RecvTimeout',500],
+                ['JtagTap',['core0','tap'], 'Jtag DTM systemc module implementation']
+          ]}]},
+    {'Class':'CpuRiscV_RTLClass','Instances':[
+          {'Name':'core0','Attr':[
+                ['LogLevel',4],
+                ['HartID',0],
+                ['AsyncReset',false],
+                ['CpuNum',1, 'Number of CPU in a workgroup. Must be <= CFG_CPU_MAX'],
+                ['L2CacheEnable',false, 'Check: PNP seetings too!!!. Enable coherent L2-cache model'],
+                ['CLINT','clint0', 'Core-Local Interuptor to generate sw and mtimer interrupts'],
+                ['PLIC','plic0'],
+                ['Bus','axi0'],
+                ['CmdExecutor','cmdexec0']
+                ['DmiBAR',0x1000,'Base address of the DMI module'],
+                ['InVcdFile','','None empty string enables generation of stimulus VCD file'],
+                ['OutVcdFile','','None empty string enables VCD file with reference signals'],
+                ['FreqHz',1000000]
+                ]}]},
+    {'Class':'BusGenericClass','Instances':[
+          {'Name':'axi0','Attr':[
+                ['LogLevel',3],
+                ['AddrWidth',39, 'Addr. bits [63:39] should be equal to [38] in real hardware'],
+                ['MapList',['rambbl0','ddr0','ddr1','bootrom0','fwimage0','sram0','gpio0',
+                        'uart0','uart1','plic0','clint0','gnss0','spiflash0',
+                        'pnp0','rfctrl0','fsegps0',['core0','dmi'],
+                        'ddrflt0','ddrctrl0','prci0','qspi2','otp0']]
+                ]}]},
+    {'Class':'JTAGClass','Instances':[
+          {'Name':'jtag0','Attr':[
+                ['LogLevel',3],
+                ['TargetBitBang',['core0','tap']],
+          ]}]},
+  ]
+}

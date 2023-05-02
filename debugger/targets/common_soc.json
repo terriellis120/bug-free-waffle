@@ -1,0 +1,340 @@
+    {'Class':'OpenOcdWrapperClass','Instances':[
+          {'Name':'openocd0','Attr':[
+                ['ObjDescription','This object runs real openocd binary if the env. variable
+                                  OPENOCD_PATH was defined. Interaction is implemented through
+                                  the gdb interface. If real openocd not found, this service emulates
+                                  it and interact with the simulation throough JTAG BitBang interface'],
+                ['LogLevel',3],
+                ['PollingMs',100],
+                ['RecvTimeout',500,'SO_RCVTIMEO socket option'],
+                ['Jtag','jtag0'],
+                ['CmdExecutor','cmdexec0'],
+                ['GdbMode',false,'true=run opneocd as external process; false=connect to emulated JTAG interface'],
+                ['OpenOcdPath','${REPO_PATH}/../openocd_gdb_cfg'],
+                ['OpenOcdScript','${REPO_PATH}/../openocd_gdb_cfg/bitbang_gdb.cfg'],
+                ['TargetIP','127.0.0.1'],
+                ['TargetPort',3333, '3333 is the default gdb port, 4444 is the default console port'],
+                ]}]},
+    {'Class':'SdCardClass','Instances':[
+          {'Name':'sd0','Attr':[
+                ['ObjDescription','Ubuntu image storage']
+                ['LogLevel',4],
+                ['Image','${REPO_PATH}/../examples/ubuntu-22.04-preinstalled-server-riscv64+unmatched.img']
+                ]}]},
+    {'Class':'TcpServerRpcClass','Instances':[
+          {'Name':'rpcserver','Attr':[
+                ['LogLevel',4],
+                ['Enable',true],
+                ['BlockingMode',true],
+                ['HostIP',''],
+                ['HostPort',8687],
+                ['RecvTimeout',500],
+                ['CmdExecutor','cmdexec0'],
+          ]}]},
+    {'Class':'ComPortServiceClass','Instances':[
+          {'Name':'port1','Attr':[
+                ['LogLevel',2],
+                ['Enable',true],
+                ['UartSim','uart0'],
+                ['ComPortName','COM3'],
+                ['ComPortSpeed',115200]]}]},
+    {'Class':'ElfReaderServiceClass','Instances':[
+          {'Name':'loader0','Attr':[
+                ['LogLevel',4],
+                ['SourceProc','src0']]}]},
+    {'Class':'ConsoleServiceClass','Instances':[
+          {'Name':'console0','Attr':[
+                ['LogLevel',4],
+                ['Enable',true],
+                ['StepQueue','core0'],
+                ['AutoComplete','autocmd0'],
+                ['CmdExecutor','cmdexec0'],
+                ['DefaultLogFile','default.log'],
+                ['Signals','gpio0'],
+                ['InputPort','port1']]}]},
+    {'Class':'AutoCompleterClass','Instances':[
+          {'Name':'autocmd0','Attr':[
+                ['LogLevel',4],
+                ['HistorySize',64],
+                ['History',[
+                     'csr MCPUID',
+                     'csr MTIME',
+                     'read 0xfffff004 128',
+                     'loadelf helloworld',
+                     ]]
+                ]}]},
+    {'Class':'CmdExecutorClass','Instances':[
+          {'Name':'cmdexec0','Attr':[
+                ['LogLevel',4],
+                ['Bus','axi0'],
+                ['Jtag','jtag0'],
+                ]}]},
+    {'Class':'SimplePluginClass','Instances':[
+          {'Name':'example0','Attr':[
+                ['LogLevel',4],
+                ['attr1','This is test attr value']]}]},
+    {'Class':'CpuMonitorClass','Instances':[
+          {'Name':'cpumon0','Attr':[
+                ['ObjDescription','This object is polling DMI haltsum0 register and detects halted CPU.
+                                  Main purpose of this polling to add breakpoins on resume and remove
+                                  them on halt events'],
+                ['Enable',false, 'Set to false to disable monitor. Useful when OpenOCD is used'],
+                ['LogLevel',1],
+                ['PollingMs',100],
+                ['Jtag','jtag0'],
+                ['CmdExecutor','cmdexec0']
+                ]}]},
+    {'Class':'MemorySimClass','Instances':[
+          {'Name':'spiflash0','Attr':[
+                ['LogLevel',1],
+                ['InitFile',''],
+                ['ReadOnly',false],
+                ['BaseAddress',0x00200000],
+                ['Length',0x40000]
+                ]}]},
+    {'Class':'CLINTClass','Instances':[
+          {'Name':'clint0','Attr':[
+                ['LogLevel',3],
+                ['Clock','core0'],
+                ['BaseAddress',0x02000000, 'FU740(unmatched) uses this base address'],
+                ['Length',0x10000],
+                ['MapList',[['clint0','msip'],
+                            ['clint0','mtimecmp'],
+                            ['clint0','mtime']
+                           ]]
+                ]}]},
+    {'Class':'PLICClass','Instances':[
+          {'Name':'plic0','Attr':[
+                ['LogLevel',4],
+                ['BaseAddress',0x0C000000, 'FU740(unmatched) and FU540(unleashed) use this base address'],
+                ['Length',0x04000000, 'End of PLIC is 0x10000000'],
+                ['MapList',[['plic0','src_priority'],
+                            ['plic0','pending']
+                           ], 'Context bank will be added on Postinit stage'],
+                ['ContextList',['HART0_M',
+                                'HART0_S'], 'Use any convinient names']
+                ]}]},
+    {'Class':'PRCIClass','Instances':[
+          {'Name':'prci0','Attr':[
+                ['ObjDescription','PLL and clock sources control registers']
+                ['LogLevel',4],
+                ['BaseAddress',0x10010000],
+                ['Length',0x1000],
+                ['MapList',[['prci0','hfxosccfg'],
+                            ['prci0','core_pllcfg'],
+                            ['prci0','core_plloutdiv'],
+                            ['prci0','ddr_pllcfg'],
+                            ['prci0','ddr_plloutdiv'],
+                            ['prci0','gemgxl_pllcfg'],
+                            ['prci0','gemgxl_plloutdiv'],
+                            ['prci0','core_clk_sel_reg'],
+                            ['prci0','devices_reset_n'],
+                            ['prci0','clk_mux_status'],
+                            ['prci0','dvfs_core_pllcfg'],
+                            ['prci0','dvfs_core_plloutdiv'],
+                            ['prci0','corepllsel'],
+                            ['prci0','hfpclk_pllcfg'],
+                            ['prci0','hfpclk_plloutdiv'],
+                            ['prci0','hfpclkpllsel'],
+                            ['prci0','hfpclk_div_reg'],
+                            ['prci0','prci_plls'],
+                           ]]
+
+                ]}]},
+    {'Class':'UARTClass','Instances':[
+          {'Name':'uart0','Attr':[
+                ['LogLevel',1],
+                ['FifoSize',16],
+                ['CmdExecutor','cmdexec0'],
+                ['BaseAddress',0x10010000],
+                ['Length',4096],
+                ['Clock','core0']
+                ['IrqController','plic0'],
+                ['IrqIdTx',39, 'The same as in FU740'],
+                ['IrqIdRx',39, 'The same as in FU740'],
+                ['MapList',[['uart0','txdata'],
+                            ['uart0','rxdata'],
+                            ['uart0','txctrl'],
+                            ['uart0','rxctrl'],
+                            ['uart0','ie'],
+                            ['uart0','ip'],
+                            ['uart0','scaler'],
+                            ['uart0','fwcpuid'],
+                           ]]
+
+                ]}]},
+    {'Class':'UARTClass','Instances':[
+          {'Name':'uart1','Attr':[
+                ['LogLevel',4],
+                ['FifoSize',16],
+                ['CmdExecutor','cmdexec0'],
+                ['BaseAddress',0x10011000],
+                ['Length',4096],
+                ['Clock','core0']
+                ['IrqController','plic0'],
+                ['IrqIdTx',40, 'The same as in FU740'],
+                ['IrqIdRx',40, 'The same as in FU740'],
+                ['MapList',[['uart1','txdata'],
+                            ['uart1','rxdata'],
+                            ['uart1','txctrl'],
+                            ['uart1','rxctrl'],
+                            ['uart1','ie'],
+                            ['uart1','ip'],
+                            ['uart1','scaler'],
+                            ['uart1','fwcpuid'],
+                           ]]
+
+                ]}]},
+    {'Class':'QspiControllerClass','Instances':[
+          {'Name':'qspi2','Attr':[
+                ['LogLevel',3],
+                ['CmdExecutor','cmdexec0'],
+                ['BaseAddress',0x10050000],
+                ['Length',0x1000],
+                ['IrqController','plic0'],
+                ['IrqId',43, 'same as FU740'],
+                ['SlaveList',[
+                              'sd0'
+                             ], 'Assign slave SPI device on available CS signal'],
+                ['MapList',[['qspi2','sckdiv'],
+                            ['qspi2','sckmode'],
+                            ['qspi2','csid'],
+                            ['qspi2','csdef'],
+                            ['qspi2','csmode'],
+                            ['qspi2','delay0'],
+                            ['qspi2','delay1'],
+                            ['qspi2','fmt'],
+                            ['qspi2','txdata'],
+                            ['qspi2','rxdata'],
+                            ['qspi2','txmark'],
+                            ['qspi2','rxmark'],
+                            ['qspi2','fctrl'],
+                            ['qspi2','ffmt'],
+                            ['qspi2','ie'],
+                            ['qspi2','ip'],
+                           ]],
+                ]}]},
+    {'Class':'GPIOClass','Instances':[
+          {'Name':'gpio0','Attr':[
+                ['LogLevel',3],
+                ['BaseAddress',0x10060000],
+                ['Length',4096],
+                ['IrqController','plic0'],
+                ['IrqId',23, 'Last IrqId 38 (same as FU740), Total 16 IOs with a separate IRQ request'],
+                ['MapList',[['gpio0','input_val'],
+                            ['gpio0','input_en'],
+                            ['gpio0','output_en'],
+                            ['gpio0','output_val'],
+                            ['gpio0','pue'],
+                            ['gpio0','ds'],
+                            ['gpio0','rise_ie'],
+                            ['gpio0','rise_ip'],
+                            ['gpio0','fall_ie'],
+                            ['gpio0','fall_ip'],
+                            ['gpio0','high_ie'],
+                            ['gpio0','high_ip'],
+                            ['gpio0','low_ie'],
+                            ['gpio0','low_ip'],
+                            ['gpio0','iof_en'],
+                            ['gpio0','iof_sel'],
+                            ['gpio0','out_xor']
+                           ]],
+                ['DIP',0x0e, '0x0f=jump to DDR; 0x0b=1011 Rescue image from SD for FU740 (FSBL=QSPI2 SD, BBL=QSPI2 SD)']
+                ]}]},
+    {'Class':'OTPClass','Instances':[
+          {'Name':'otp0','Attr':[
+                ['LogLevel',4],
+                ['BaseAddress',0x10070000],
+                ['Length',0x1000],
+                ['MapList',[['otp0','PA'],
+                            ['otp0','PAI0'],
+                            ['otp0','PAS'],
+                            ['otp0','PCE'],
+                            ['otp0','PCLK'],
+                            ['otp0','PDIN'],
+                            ['otp0','PDOUT'],
+                            ['otp0','PDSTB'],
+                            ['otp0','PPROG'],
+                            ['otp0','PTC'],
+                            ['otp0','PTM'],
+                            ['otp0','PTM_REP'],
+                            ['otp0','PTR'],
+                            ['otp0','PTRIM'],
+                            ['otp0','PWE'],
+                           ]],
+                ['InitData',[[0x80,0x11223344],
+                           ]]
+                ]}]},
+    {'Class':'DdrControllerClass','Instances':[
+          {'Name':'ddrctrl0','Attr':[
+                ['LogLevel',4],
+                ['BaseAddress',0x100B0000],
+                ['Length',0x4000, 'The last addr should be 0x100B_3FFF'],
+                ['MapList',[['ddrctrl0','ctrl0'],
+                            ['ddrctrl0','ctrl19'],
+                            ['ddrctrl0','ctrl21'],
+                            ['ddrctrl0','ctrl120'],
+                            ['ddrctrl0','ctrl132'],
+                            ['ddrctrl0','ctrl136'],
+                           ]]
+
+                ]}]},
+    {'Class':'DdrPhysFilterClass','Instances':[
+          {'Name':'ddrflt0','Attr':[
+                ['LogLevel',4],
+                ['DdrController','ddrctrl0']
+                ['BaseAddress',0x100B8000],
+                ['Length',4096],
+                ['MapList',[['ddrflt0','devicepmp0'],
+                            ['ddrflt0','devicepmp1'],
+                            ['ddrflt0','devicepmp2'],
+                            ['ddrflt0','devicepmp3'],
+                           ]]
+
+                ]}]},
+    {'Class':'RfControllerClass','Instances':[
+          {'Name':'rfctrl0','Attr':[
+                ['LogLevel',1],
+                ['BaseAddress',0x100f0000],
+                ['Length',4096],
+                ['SubSystemConfig',0x7, '[0]=RfController enable; [1]=Engine; [2]=Fse GPS; [3]=Fse Glonass; [4]Fse Galileo']
+                ]}]},
+    {'Class':'GNSSStubClass','Instances':[
+          {'Name':'gnss0','Attr':[
+                ['LogLevel',3],
+                ['BaseAddress',0x100f1000],
+                ['Length',4096],
+                ['IrqController','plic0'],
+                ['IrqId',71],
+                ['ClkSource','core0']
+                ]}]},
+    {'Class':'UartMstClass','Instances':[
+          {'Name':'uartmst0','Attr':[
+                ['LogLevel',1],
+                ['Bus','axi0']
+                ]}]},
+    {'Class':'FseV2Class','Instances':[
+          {'Name':'fsegps0','Attr':[
+                ['LogLevel',1],
+                ['BaseAddress',0x100f2000],
+                ['Length',4096]
+                ]}]},
+    {'Class':'PNPClass','Instances':[
+          {'Name':'pnp0','Attr':[
+                ['LogLevel',4],
+                ['BaseAddress',0x100ff000],
+                ['Length',4096],
+                ['IrqController','plic0'],
+                ['IrqId',70, 'The last interrupt index in FU740 is 69, use the next unused'],
+                ['cpu_max',1, 'Number of CPU visible by software CFG_CPU_MAX'],
+                ['l2cache_ena',0, '0=diable; 1=ena. L2Cache/L2Dummy selector']
+                ]}]},
+    {'Class':'HardResetClass','Instances':[
+          {'Name':'reset0','Attr':[
+                ['ObjDescription','This device provides command (todo) to reset/power on-off system']
+                ['LogLevel',4],
+                ]}]},
+    {'Class':'BoardSimClass','Instances':[
+          {'Name':'boardsim','Attr':[
+                ['LogLevel',1]
+                ]}]},

@@ -1,0 +1,12 @@
+*.bak
+*.dump
+*.err
+*.lst
+patches/
+work/tb/*
+!work/tb/uart_sim.vhd
+!work/tb/ethphy_sim.vhd
+!work/tb/jtag_sim.vhd
+!work/tb/dpi1
+!work/tb/25xx1024
+

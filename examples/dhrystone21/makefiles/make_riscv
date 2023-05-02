@@ -1,0 +1,86 @@
+include makeutil.mak
+
+CC=riscv64-unknown-elf-gcc
+CPP=riscv64-unknown-elf-gcc
+OBJDUMP=riscv64-unknown-elf-objdump
+
+CFLAGS= -c -fPIC -g -O2 -DCONFIG_RISCV64
+ifeq ($(FPU_ENABLED), 1)
+  CFLAGS += -march=rv64imafd -DFPU_ENABLED
+else
+  CFLAGS += -march=rv64imac -mabi=lp64
+endif
+
+LDFLAGS=-static -T test_riscv.ld -nostartfiles -DCONFIG_RISCV64
+ifeq ($(FPU_ENABLED), 1)
+else
+  LDFLAGS += -march=rv64imac -mabi=lp64
+endif
+INCL_KEY=-I
+DIR_KEY=-B
+
+
+# include sub-folders list
+INCL_PATH=\
+	$(TOP_DIR)../common \
+	$(TOP_DIR)src
+
+# source files directories list:
+SRC_PATH = \
+	$(TOP_DIR)src \
+	$(TOP_DIR)src/dhry
+
+LIB_NAMES = \
+	gcc \
+	stdc++ \
+	c \
+	m
+
+VPATH = $(SRC_PATH)
+
+
+SOURCES = uart \
+	dhry_1 \
+	dhry_2 \
+	stdtool \
+	main
+
+OBJ_FILES = $(addsuffix .o,$(SOURCES))
+COMMONNAME = dhrystone21
+EXECUTABLE = $(COMMONNAME).elf
+DUMPFILE = $(COMMONNAME).dump
+HEXFILE = $(COMMONNAME).hex
+LSTFILE = $(COMMONNAME).lst
+
+all: riscv
+
+.PHONY: $(EXECUTABLE)
+
+
+riscv: $(EXECUTABLE) $(DUMPFILE) $(HEXFILE)
+
+$(HEXFILE): $(EXECUTABLE)
+	echo elf2rawx $(addprefix $(ELF_DIR)/,$<) -h -f 262144 -l 8 -o $(addprefix $(ELF_DIR)/,$(HEXFILE))
+	elf2rawx $(addprefix $(ELF_DIR)/,$<) -h -f 262144 -l 8 -o $(addprefix $(ELF_DIR)/,$(HEXFILE))
+
+$(DUMPFILE): $(EXECUTABLE)
+	echo $(OBJDUMP) --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.data $(addprefix $(ELF_DIR)/,$<) > $(addprefix $(ELF_DIR)/,$@)
+	$(OBJDUMP) --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.data $(addprefix $(ELF_DIR)/,$<) > $(addprefix $(ELF_DIR)/,$@)
+	$(OBJDUMP) -S $(addprefix $(ELF_DIR)/,$<) > $(addprefix $(ELF_DIR)/,$(LSTFILE))
+
+$(EXECUTABLE): $(OBJ_FILES)
+	echo $(CPP) $(LDFLAGS) $(addprefix $(OBJ_DIR)/,$(OBJ_FILES)) -o $(addprefix $(ELF_DIR)/,$@) $(addprefix -l,$(LIB_NAMES))
+	$(CPP) $(LDFLAGS) $(addprefix $(OBJ_DIR)/,$(OBJ_FILES)) -o $(addprefix $(ELF_DIR)/,$@) $(addprefix -l,$(LIB_NAMES))
+	$(ECHO) "\n  Dhrystone v2.1 RISC-V has been built successfully.\n"
+
+%.o: %.cpp
+	echo $(CPP) $(CFLAGS) $(addprefix $(INCL_KEY),$(INCL_PATH)) $< -o $(addprefix $(OBJ_DIR)/,$@)
+	$(CPP) $(CFLAGS) $(addprefix $(INCL_KEY),$(INCL_PATH)) $< -o $(addprefix $(OBJ_DIR)/,$@)
+
+%.o: %.c
+	echo $(CC) $(CFLAGS) $(addprefix $(INCL_KEY),$(INCL_PATH)) $< -o $(addprefix $(OBJ_DIR)/,$@)
+	$(CC) $(CFLAGS) $(addprefix $(INCL_KEY),$(INCL_PATH)) $< -o $(addprefix $(OBJ_DIR)/,$@)
+
+%.o: %.S
+	echo $(CC) $(CFLAGS) -D__ASSEMBLY__=1 $(addprefix $(INCL_KEY),$(INCL_PATH)) $< -o $(addprefix $(OBJ_DIR)/,$@)
+	$(CC) $(CFLAGS) -D__ASSEMBLY__=1 $(addprefix $(INCL_KEY),$(INCL_PATH)) $< -o $(addprefix $(OBJ_DIR)/,$@)

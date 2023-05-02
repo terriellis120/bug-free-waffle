@@ -1,0 +1,121 @@
+###############################################################################
+# Define Device, Package And Speed Grade
+###############################################################################
+CONFIG PART = XC6VLX240T-FF1156-1;
+
+NET "i_sclk_p" TNM_NET = TNM_SysClk;
+TIMESPEC "TS_SysClk" = PERIOD "TNM_SysClk" 5 ns ;
+NET  "i_sclk_p"   LOC = "J9";
+NET  "i_sclk_p"   IOSTANDARD = LVDS_25;
+NET  "i_sclk_n"   LOC = "H9";
+NET  "i_sclk_n"   IOSTANDARD = LVDS_25;
+
+# button "Center"
+NET "i_rst" LOC = G26;
+NET "i_rst" CLOCK_DEDICATED_ROUTE = "FALSE";
+# jumpers
+
+
+# UART1 interface
+NET "i_uart1_rd"   LOC = J24;
+NET "o_uart1_td"   LOC = J25;
+
+# UART2 interface (debug port).
+# Assign to HPC:
+NET "i_uart2_rd"   LOC = AM23; # HPC H19
+NET "o_uart2_td"   LOC = AP22; # HPC G18
+# Assign to LPC:
+#NET "i_uart2_ctsn" LOC = C33; # LPC C18
+#NET "i_uart2_rd"   LOC = B34; # LPC C19
+#NET "o_uart2_rtsn" LOC = F30; # LPC C14
+#NET "o_uart2_td"   LOC = G30; # LPC C15
+
+# GPIO
+NET "io_gpio[0]"  LOC = D22 | IOSTANDARD=LVCMOS18 | PULLDOWN | SLEW=SLOW | DRIVE=2;   # DIP-0. Generate ADC clock internally = sys_clk/4
+NET "io_gpio[1]"  LOC = C22 | IOSTANDARD=LVCMOS18 | PULLDOWN | SLEW=SLOW | DRIVE=2;   # DIP-1
+NET "io_gpio[2]"  LOC = L21 | IOSTANDARD=LVCMOS18 | PULLDOWN | SLEW=SLOW | DRIVE=2;   # DIP-2
+NET "io_gpio[3]"  LOC = L20 | IOSTANDARD=LVCMOS18 | PULLDOWN | SLEW=SLOW | DRIVE=2;   # DIP-3
+#NET "i_dip[4]"  LOC = C18;   # DIP-4
+#NET "i_dip[5]"  LOC = B18;   # DIP-5
+#NET "i_dip[6]"  LOC = K22;   # DIP-6
+#NET "i_dip[7]"  LOC = K21;   # DIP-7
+
+# User's LEDs:
+NET "io_gpio[4]" LOC = AC22;
+NET "io_gpio[5]" LOC = AC24;
+NET "io_gpio[6]" LOC = AE22;
+NET "io_gpio[7]" LOC = AE23;
+NET "io_gpio[8]" LOC = AB23;
+NET "io_gpio[9]" LOC = AG23;
+NET "io_gpio[10]" LOC = AE24;
+NET "io_gpio[11]" LOC = AD24;
+
+#JTAG unused
+NET "i_jtag_tck" CLOCK_DEDICATED_ROUTE = "FALSE";
+
+NET "o_jtag_vref" LOC = C34;
+NET "i_jtag_ntrst" LOC = D34;
+NET "i_jtag_tdi" LOC = L26;
+NET "i_jtag_tms" LOC = L25;
+NET "i_jtag_tck" LOC = H34;
+NET "o_jtag_tdo" LOC = K33;
+
+# ADC samples:
+NET "i_clk_adc" LOC = "A10";
+NET "i_clk_adc" TNM_NET = TNM_AdcClk;
+TIMESPEC "TS_AdcClk" = PERIOD "TNM_AdcClk" 24 ns ;
+NET "i_gps_I[1]" LOC = "P32";
+NET "i_gps_I[0]" LOC = "N34";
+NET "i_gps_Q[1]" LOC = "P30";
+NET "i_gps_Q[0]" LOC = "N32";
+NET "i_gps_ld" LOC = "N33";
+NET "i_glo_I[1]" LOC = "B34";#"M25";
+NET "i_glo_I[0]" LOC = "C33";#"N25";
+NET "i_glo_Q[1]" LOC = "G30";#"K32";
+NET "i_glo_Q[0]" LOC = "F30";#"K31";
+NET "i_glo_ld" LOC = "M33";
+NET "o_pps" LOC = "AN22";	  #HPC H17
+
+# RF control:
+NET "o_max_sclk" LOC = "L31";
+NET "o_max_sdata" LOC = "M31";
+NET "o_max_ncs[1]" LOC = "M26";
+NET "o_max_ncs[0]" LOC = "P34";
+NET "i_antext_stat" LOC = "H32";
+NET "i_antext_detect" LOC = "K29";
+NET "o_antext_ena" LOC = "G32";
+NET "o_antint_contr" LOC = "P31";
+
+# Ethernet signals
+NET "i_gmiiclk_p"             LOC = "H6";
+NET "i_gmiiclk_n"             LOC = "H5";
+NET "o_egtx_clk"              LOC = "AH12";   ## 14  on U80
+NET "i_etx_clk"               LOC = "AD12";   ## 10  on U80
+NET "i_erx_clk"               LOC = "AP11";   ## 7   on U80
+NET "i_erxd(0)"               LOC = "AN13";   ## 3   on U80
+NET "i_erxd(1)"               LOC = "AF14";   ## 128 on U80
+NET "i_erxd(2)"               LOC = "AE14";   ## 126 on U80
+NET "i_erxd(3)"               LOC = "AN12";   ## 125 on U80
+NET "i_erx_dv"                LOC = "AM13";   ## 4   on U80
+NET "i_erx_er"                LOC = "AG12";   ## 9   on U80
+NET "i_erx_col"               LOC = "AK13";   ## 114 on U80
+NET "i_erx_crs"               LOC = "AL13";   ## 115 on U80
+NET "i_emdint"                LOC = "AH14";   ## 32  on U80
+NET "o_etxd(0)"               LOC = "AM11";   ## 18  on U80
+NET "o_etxd(1)"               LOC = "AL11";   ## 19  on U80
+NET "o_etxd(2)"               LOC = "AG10";   ## 20  on U80
+NET "o_etxd(3)"               LOC = "AG11";   ## 24  on U80
+NET "o_etx_en"                LOC = "AJ10";   ## 16  on U80
+NET "o_etx_er"                LOC = "AH10";   ## 13  on U80
+NET "o_emdc"                  LOC = "AP14";   ## 35  on U80
+NET "io_emdio"                LOC = "AN14";   ## 33  on U80
+NET "o_erstn"                 LOC = "AH13";   ## 36  on U80
+
+NET "i_gmiiclk_p"            TNM_NET = "clk_gtx";
+TIMESPEC "TS_gtx_clk"      = PERIOD "clk_gtx" 8000 ps HIGH 50 %;
+
+NET "i_erx_clk"              TNM_NET  = "clk_rx";
+TIMESPEC "TS_rx_clk"       = PERIOD "clk_rx" 40000 ps HIGH 50 %;
+
+NET "i_etx_clk"              TNM_NET  = "clk_tx_mac";
+TIMESPEC "TS_tx_clk_mii"   = PERIOD "clk_tx_mac" 40000 ps HIGH 50 %;

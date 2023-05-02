@@ -1,0 +1,233 @@
+/**  @page gpio_page GPIO Controller
+
+  System-on-Chip based on River CPU provides additional periphery module GPIO 
+Controller (\c axi4_gpio). This modules instantiates \c width number of bi-directional pins,
+where \c width is the generic parameter which is equal to 12 for all used fpga boards
+(4 LEDs + 8 User defined DIPs). ALL GPIOs connected via bi-directional buffer
+with the Z-state and can be programmed as inputs or outputs.
+
+  Default ASIC configuraton supposes that all GPIO will be configures as input pins
+after hard reset but for the FPGA targets GPIOs are splitted on input connected 
+to User's DIP switch and output connected to LEDs so the hard reset state
+may differ from default configuration.
+
+ @section gpio_boot_config_section Boot Loader Configuration
+
+  GPIOs pins is used to pass some configuration and select desired behaviour
+of program loaded into Boot ROM. There're plenty number of possible
+images that can be used as boot image as available in folder \c examples
+ether as not available:
+
+  \li <c>examples/boot/*</c>. Demonstration ROM image starting user application.
+  \li <c>examples/bootrom_tests/*</c>. Self test application running directly from ROM
+  \li <c>examples/sysboot/*</c>. Full functional ASIC boot loader.
+  \li Other custom application.
+
+ Depending of the used ROM program there're may be the following GPIO
+pins assignment:
+
+| GPIO[1] | GPIO[0] | Boot Description
+|:-------:|:-------:|:------------
+| 0       | 0       | Boot from the internal Boot ROM module (default)
+| 0       | 1       | Boot from the external flash IC
+| 1       | 0       | Secured Boot from the internal OTP memory
+| 1       | 1       | Run infinite SRAM test from the Boot ROM
+ 
+ @section gpio_regs GPIO Controller Registers
+
+  GPIO Controller module is connected as a slave device to the AXI4 Bus
+Controller and available for reading and writing as a single port memory
+for any master device in the system.
+
+AXI4 GPIO Controller configured with the following generic parameters by default:
+
+<center>
+<table>
+  <tr>
+    <th>Name</th>    <th>Value</th>   <th>Description</th>
+  </tr>
+  <tr>
+    <td>async_reset</td>
+    <td>FALSE</td>
+    <td><b>Reset Type</b>. Internal registers reset type:
+       <ul>
+         <li>FALSE syncrhonous reset (FPGA)</li>
+         <li>TRUE asynchronous reset (ASIC)</li>
+       </ul></td>
+  </tr>
+  <tr>
+    <td>xaddr</td>
+    <td>16#80002#</td>
+    <td><b>Base address</b>. Base Address value defines bits [31:12] of the
+        allocated memory space</td>
+  </tr>
+  <tr>
+    <td>xmask</td>
+    <td>16#FFFFF#</td>
+    <td><b>Address Mask</b>. Address Mask is used by system controller to defines
+        allocated memory size</td>
+  </tr>
+  <tr>
+    <td>xirq</td>
+    <td>0</td>
+    <td><b>IRQ index</b>. Unused in the current configuration.</td>
+  </tr>
+  <tr>
+    <td>width</td>
+    <td>12</td>
+    <td><b>GPIO Width</b>. Total number of bi-directional pins.</td>
+  </tr>
+</table>
+@latexonly \begin{tblid} @endlatexonly
+GPIO generic parameters.
+@latexonly \end{tblid} @endlatexonly
+</center>
+
+  These generic parameters directly define the GPIO Controller device memory location
+in the system memory map. Base Address is 0x80000000. Allocated memory size
+is 4 KB.
+
+  The full list of Registers relative Device Base Address offset is shown in the
+following table.
+
+  <b>Device Registers list</b>
+
+<center>
+| Offset   | Name           | Reset Val. | Description
+|:--------:|:---------------|:----------:|----------------------------
+| 0x000    | GPIO_DIRECTION | 0000:03FFh | IOs direction
+| 0x004    | GPIO_IUSER     | 0000:0000h | Input IOs values
+| 0x008    | GPIO_OUSER     | 0000:0000h | Output IOs values
+| 0x00C    | GPIO_REG32     | 0000:0000h | Debug register
+@latexonly \begin{tblid} @endlatexonly
+AXI4 GPIO Controller Registers.
+@latexonly \end{tblid} @endlatexonly
+</center>
+
+
+<b> GPIO_DIRECTION Register (0x000)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>rsrv</td>  <td>[31:width]</td>   <td>RZ</td>   <td>reserved.</td>
+  </tr>
+  <tr>
+    <td>direction</td>   <td>[width-1:0]</td>   <td>RW</td>   <td><b>IO Direction</b>.
+        Data direction register determines which pins should work as an inputs
+        and which one as an outputs:
+            \li '0' - Output
+            \li '1' - Input (reset value)</td>
+  </tr>
+</table>
+
+
+<b> GPIO_IUSER Register (0x004)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>rsrv</td>  <td>[31:width]</td>   <td>RZ</td>   <td>reserved.</td>
+  </tr>
+  <tr>
+    <td>iuser</td>   <td>[width-1:0]</td>   <td>RO</td>   <td><b>Input Data</b>.
+        This register provides direct read access to the IOs pins. If some pins
+        were configured as an output then corresponding bits in the read value
+        will have unpredictable values and should be ignored.</td>
+  </tr>
+</table>
+
+
+<b> GPIO_OUSER Register (0x008)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>rsrv</td>  <td>[31:width]</td>   <td>RZ</td>   <td>reserved.</td>
+  </tr>
+  <tr>
+    <td>ouser</td>   <td>[width-1:0]</td>   <td>RW</td>   <td><b>Output Data</b>.
+        Output Data register contains a data latch for each pins configured
+        as an output. If pin configured as an input corresponding bit
+        value is ignoring.</td>
+  </tr>
+</table>
+
+
+<b> GPIO_REG32 Register (0x00C)</b>
+
+<table>
+  <tr>
+    <th>Field</th> <th>Bits</th> <th>Type</th> <th>Description</th>
+  </tr>
+  <tr>
+    <td>reg32_3</td>   <td>[31:0]</td>   <td>RW</td>   <td><b>Temporary Data</b>.
+        Read/Write temporary register used by FW with the debug purposes.</td>
+  </tr>
+</table>
+
+@section uart_example_section C-code example
+
+  The following C-example demonstrates procedures of interaction
+with the GPIO module that allows to read User's DIP configuration
+and switch User's LEDs connected to SoC outputs. Let's suppose
+the following configuration:
+
+  \li GPIO[3:0] controlled by user DIPs (inputs)
+  \li GPIO[11:4] connected to LEDs (outputs)
+
+@code
+    // Memory Base address of the device
+    #define ADDR_BUS0_XSLV_GPIO   0x80002000
+    
+    typedef struct gpio_map {
+        volatile uint32_t direction;
+        volatile uint32_t iuser;
+        volatile uint32_t ouser;
+        volatile uint32_t reg32_3;
+    } gpio_map;
+    
+    // Set index specific LED turn on/off
+    void set_led(int onoff, int idx) {
+        gpio_map *gpio = (gpio_map *)ADDR_BUS0_XSLV_GPIO;
+        // [11:4] LED, [3:0] DIP pins
+        uint32_t ouser = gpio->ouser >> 4;
+        ouser &= ~(1 << idx);
+        ouser |= (onoff & 0x1) << idx;
+        gpio->ouser = (ouser << 4);
+    }
+    
+    // Read index specific DIP value
+    int get_dip(int idx) {
+        // [3:0] DIP pins
+        int dip = ((gpio_map *)ADDR_BUS0_XSLV_GPIO)->iuser >> idx;
+        return dip & 1;
+    }
+  
+    // Some initialization function
+    void soc_init() {
+        gpio_map *gpio = (gpio_map *)GPIO_BASE_ADDR;
+        gpio->direction = 0x00F;   // [11:4] LED, [3:0] DIP
+  
+        // Turn on LED[7]
+        set_led(7, 0);
+  
+        // see examples/boot/main.c
+        if (get_dip(0) == 1) {
+            print_uart("Coping FLASH\r\n", 14);
+            memcpy(sram, flash, FW_IMAGE_SIZE_BYTES);
+        } else {
+            print_uart("Coping FWIMAGE\r\n", 16);
+            memcpy(sram, fwrom, FW_IMAGE_SIZE_BYTES);
+        }
+    }
+
+@endcode
+
+*/

@@ -1,0 +1,91 @@
+    {'Class':'GuiPluginClass','Instances':[
+                {'Name':'gui0','Attr':[
+                ['LogLevel',4],
+                ['WidgetsConfig',{
+                  'OpenViews':['UartQMdiSubWindow'],
+                  'Serial':'port1',
+                  'AutoComplete':'autocmd0',
+                  'AddrPNP':0x100ff000,
+                  'StepToSecHz':12000000.0,
+                  'PollingMs':250,
+                  'EventsLoopMs':10,
+                  'RegsViewWidget':{
+                     'RegisterSet':[
+                         {'RegList':[['ra', 's0',  'a0'],
+                                     ['sp', 's1',  'a1'],
+                                     ['gp', 's2',  'a2'],
+                                     ['tp', 's3',  'a3'],
+                                     [''  , 's4',  'a4'],
+                                     ['t0', 's5',  'a5'],
+                                     ['t1', 's6',  'a6'],
+                                     ['t2', 's7',  'a7'],
+                                     ['t3', 's8',  ''],
+                                     ['t4', 's9',  ''],
+                                     ['t5', 's10', ''],
+                                     ['t6', 's11', 'pc']],
+                          'RegWidthBytes':8},
+                         {'RegList':[],
+                          'RegWidthBytes':8}],
+                     'CpuContext':[
+                         {'CpuIndex':0,
+                          'RegisterSetIndex':0,
+                          'Description':'River 64-bits integer bank'}]
+                     },
+                }],
+                ['CmdExecutor','cmdexec0'],
+                ]}]},
+
+    {'Class':'RiscvSourceServiceClass','Instances':[
+          {'Name':'src0','Attr':[
+                ['LogLevel',4],
+                ['CmdExecutor','cmdexec0'],
+                ]}]},
+
+    {'Class':'MemorySimClass','Instances':[
+          {'Name':'bootrom0','Attr':[
+                ['LogLevel',1],
+                ['InitFile','${REPO_PATH}/../examples/bootrom_tests/linuxbuild/bin/bootrom_tests', 'if no .hex, then file is splitted of _hi.hex and _lo.hex'],
+                ['BinaryFile',false, 'default is false'],
+                ['ReadOnly',true],
+                ['BaseAddress',0x10000, 'Rom+reserved from 0x0001_0000 upto 0x0100_0000 on FU740'],
+                ['Length',0x10000]
+                ]}]},
+    {'Class':'MemorySimClass','Instances':[
+          {'Name':'fwimage0','Attr':[
+                ['LogLevel',1],
+                ['InitFile','${REPO_PATH}/../examples/riscv-tests/makefiles/bin/riscv-tests.hex'],
+                ['ReadOnly',true],
+                ['BaseAddress',0x09000000, 'Also rom region on FU740'],
+                ['Length',0x40000]
+                ]}]},
+    {'Class':'MemorySimClass','Instances':[
+          {'Name':'sram0','Attr':[
+                ['LogLevel',1],
+                ['InitFile','${REPO_PATH}/../examples/riscv-tests/makefiles/bin/riscv-tests.hex'],
+                ['BinaryFile',false],
+                ['ReadOnly',false],
+                ['BaseAddress',0x08000000, 'L2 Cache controller range on FU740 used by bootloader'],
+                ['Length',0x200000, '2 MB alloacted on FU740. More than 1 MB need for U-boot']
+                ]}]},
+    {'Class':'MemorySimClass','Instances':[
+          {'Name':'rambbl0','Attr':[
+                ['LogLevel',1],
+                ['Priority',1],
+                ['InitFile','${REPO_PATH}/../examples/bbl-q/bbl-q-noprintf.hex'],
+                ['BinaryFile',false],
+                ['ReadOnly',false],
+                ['BaseAddress',0x80000000, 'overlay with ddr0'],
+                ['Length',0x800000, '8 MB sram to load bbl-q application']
+                ]}]},
+    {'Class':'DDRClass','Instances':[
+          {'Name':'ddr0','Attr':[
+                ['LogLevel',1],
+                ['BaseAddress',0x80000000],
+                ['Length',0x80000000, '2GB bank']
+                ]}]},
+    {'Class':'DDRClass','Instances':[
+          {'Name':'ddr1','Attr':[
+                ['LogLevel',1],
+                ['BaseAddress',0x100000000],
+                ['Length',0x200000000, '8GB bank']
+                ]}]},
